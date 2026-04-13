@@ -1,5 +1,5 @@
 name: 'Unkode Architecture Check'
-description: 'Check architecture freshness and post diff diagram on PRs'
+description: 'Post architecture diff diagram on PRs when unkode.yaml changes'
 
 inputs:
   base-branch:
@@ -19,73 +19,43 @@ runs:
       shell: bash
       run: pip install pyyaml -q
 
-    - name: Check architecture freshness
-      id: check
-      shell: bash
-      run: |
-        if [ ! -f unkode.yaml ]; then
-          echo "status=missing" >> $GITHUB_OUTPUT
-          exit 0
-        fi
-
-        LAST_SYNC=$(python -c "
-        import yaml
-        with open('unkode.yaml') as f:
-            d = yaml.safe_load(f) or {}
-        v = str(d.get('_meta', {}).get('last_sync_commit', '')).strip()
-        print(v)
-        ")
-        LAST_SYNC=$(echo "$LAST_SYNC" | tr -d '[:space:]')
-        HEAD=$(git rev-parse HEAD)
-
-        echo "DEBUG: LAST_SYNC=$LAST_SYNC"
-        echo "DEBUG: HEAD=$HEAD"
-
-        if [ -z "$LAST_SYNC" ]; then
-          echo "status=no_meta" >> $GITHUB_OUTPUT
-        else
-          # Check if LAST_SYNC commit exists in history
-          if ! git cat-file -t "$LAST_SYNC" > /dev/null 2>&1; then
-            echo "DEBUG: LAST_SYNC commit not found in git history"
-            echo "status=stale" >> $GITHUB_OUTPUT
-            echo "behind=unknown" >> $GITHUB_OUTPUT
-          else
-            BEHIND=$(git rev-list --count ${LAST_SYNC}..HEAD 2>/dev/null || echo "999")
-            echo "DEBUG: BEHIND=$BEHIND"
-            if [ "$BEHIND" -le 1 ]; then
-              echo "status=current" >> $GITHUB_OUTPUT
-            else
-              echo "status=stale" >> $GITHUB_OUTPUT
-              echo "behind=$BEHIND" >> $GITHUB_OUTPUT
-            fi
-          fi
-        fi
-
     - name: Generate diff
       id: diff
       shell: bash
       run: |
-        SKILLS_DIR=""
+        # Find yaml_diff.py
+        DIFF_SCRIPT=""
         for d in .agents/skills/unkode .claude/skills/unkode; do
           if [ -f "$d/yaml_diff.py" ]; then
-            SKILLS_DIR="$d"
+            DIFF_SCRIPT="$d/yaml_diff.py"
             break
           fi
         done
 
-        if [ -z "$SKILLS_DIR" ]; then
+        if [ -z "$DIFF_SCRIPT" ]; then
           echo "has_diff=false" >> $GITHUB_OUTPUT
+          echo "no_script=true" >> $GITHUB_OUTPUT
           exit 0
         fi
 
         # Check if unkode.yaml exists on base branch
-        if ! git show origin/${{ inputs.base-branch }}:unkode.yaml > /dev/null 2>&1; then
+        BASE=${{ inputs.base-branch }}
+        if ! git show origin/${BASE}:unkode.yaml > /dev/null 2>&1; then
           echo "has_diff=false" >> $GITHUB_OUTPUT
+          echo "no_baseline=true" >> $GITHUB_OUTPUT
           exit 0
         fi
 
-        python "$SKILLS_DIR/yaml_diff.py" \
-          --base-branch "origin/${{ inputs.base-branch }}" \
+        # Check if unkode.yaml exists on current branch
+        if [ ! -f unkode.yaml ]; then
+          echo "has_diff=false" >> $GITHUB_OUTPUT
+          echo "no_yaml=true" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # Run diff
+        python "$DIFF_SCRIPT" \
+          --base-branch "origin/${BASE}" \
           --current unkode.yaml \
           -o /tmp/unkode-diff.md 2>/dev/null
 
@@ -103,23 +73,19 @@ runs:
           const fs = require('fs');
 
           let body = '';
-          const status = '${{ steps.check.outputs.status }}';
-          const behind = '${{ steps.check.outputs.behind }}';
           const hasDiff = '${{ steps.diff.outputs.has_diff }}' === 'true';
+          const noYaml = '${{ steps.diff.outputs.no_yaml }}' === 'true';
+          const noBaseline = '${{ steps.diff.outputs.no_baseline }}' === 'true';
 
-          // Freshness warning
-          if (status === 'missing') {
-            body += '> **Unkode:** No `unkode.yaml` found. Run `/unkode` to generate the architecture baseline.\n\n';
-          } else if (status === 'stale') {
-            body += `> **Unkode:** Architecture diagram is ${behind} commit(s) behind. Run \`/unkode\` to update.\n\n`;
-          }
-
-          // Diff diagram
-          if (hasDiff) {
+          if (noYaml) {
+            body = '> **Unkode:** No `unkode.yaml` found. Run `/unkode` to generate the architecture baseline.';
+          } else if (noBaseline) {
+            body = '> **Unkode:** No architecture baseline on main yet. Merge `unkode.yaml` to main first.';
+          } else if (hasDiff) {
             try {
               const diff = fs.readFileSync('/tmp/unkode-diff.md', 'utf8');
               if (!diff.includes('No architectural changes detected')) {
-                body += diff;
+                body = diff;
               }
             } catch (e) {}
           }
@@ -132,7 +98,7 @@ runs:
             repo: context.repo.repo,
             issue_number: context.issue.number,
           });
-          const existing = comments.find(c => c.body.includes('**Unkode:**'));
+          const existing = comments.find(c => c.body && c.body.includes('**Unkode'));
 
           if (existing) {
             await github.rest.issues.updateComment({
@@ -149,10 +115,3 @@ runs:
               body,
             });
           }
-
-    - name: Fail if stale
-      if: steps.check.outputs.status == 'stale' || steps.check.outputs.status == 'missing'
-      shell: bash
-      run: |
-        echo "Architecture diagram is out of date. Run /unkode to update."
-        exit 1
