@@ -25,6 +25,33 @@ def escape_label(text: str) -> str:
     return text.replace('"', "&quot;").replace("[", "(").replace("]", ")")
 
 
+# Shape map: kind → (open, close) Mermaid shape brackets
+INTERNAL_SHAPES = {
+    "frontend": ("[/", "\\]"),       # trapezoid
+    "backend":  ("[", "]"),           # rectangle
+    "worker":   ("[\\", "/]"),        # inverted trapezoid
+    "library":  ("([", "])"),         # stadium
+    "cli":      (">", "]"),           # asymmetric
+    "other":    ("(", ")"),           # rounded
+}
+EXTERNAL_SHAPES = {
+    "database": ("[(", ")]"),         # cylinder
+    "cache":    ("[(", ")]"),         # cylinder
+    "storage":  ("[(", ")]"),         # cylinder
+    "queue":    ("[/", "/]"),         # parallelogram
+    "api":      ("[[", "]]"),         # subroutine
+    "other":    ("(", ")"),           # rounded
+}
+
+
+def shape_node(node_id: str, label: str, kind: str | None, is_external: bool) -> str:
+    """Render a Mermaid node with shape based on kind."""
+    shapes = EXTERNAL_SHAPES if is_external else INTERNAL_SHAPES
+    default = "other" if is_external else "backend"
+    o, c = shapes.get(kind or default, shapes[default])
+    return f'{node_id}{o}"{label}"{c}'
+
+
 # ── Architecture diagram ────────────────────────────────────────────────────
 
 def render_architecture(modules: list) -> str:
@@ -45,16 +72,16 @@ def render_architecture(modules: list) -> str:
             lines.append(f'    subgraph {mid}["{escape_label(label)}"]')
             for comp in comps:
                 cid = sanitize_id(f'{mod["name"]}_{comp["name"]}')
-                lines.append(f'        {cid}["{escape_label(comp["name"])}"]')
+                lines.append(f'        {shape_node(cid, escape_label(comp["name"]), mod.get("kind"), False)}')
             lines.append("    end")
         else:
-            lines.append(f'    {mid}["{escape_label(label)}"]')
+            lines.append(f'    {shape_node(mid, escape_label(label), mod.get("kind"), False)}')
 
     if externals:
         lines.append("")
         for ext in externals:
             eid = sanitize_id(ext["name"])
-            lines.append(f'    {eid}[("{escape_label(ext["name"])}")]')
+            lines.append(f'    {shape_node(eid, escape_label(ext["name"]), ext.get("kind"), True)}')
 
     lines.append("")
     all_names = {m["name"] for m in modules}
@@ -177,10 +204,10 @@ def render_combined(architecture: list, deployment: list) -> str:
                     lines.append(f'        subgraph {mid}["{escape_label(label)}"]')
                     for comp in comps:
                         cid = sanitize_id(f'{mod["name"]}_{comp["name"]}')
-                        lines.append(f'            {cid}["{escape_label(comp["name"])}"]')
+                        lines.append(f'            {shape_node(cid, escape_label(comp["name"]), mod.get("kind"), False)}')
                     lines.append("        end")
                 else:
-                    lines.append(f'        {mid}["{escape_label(label)}"]')
+                    lines.append(f'        {shape_node(mid, escape_label(label), mod.get("kind"), False)}')
             lines.append("    end")
 
     # Unhosted internal modules
@@ -197,17 +224,17 @@ def render_combined(architecture: list, deployment: list) -> str:
             lines.append(f'    subgraph {mid}["{escape_label(label)}"]')
             for comp in comps:
                 cid = sanitize_id(f'{mod["name"]}_{comp["name"]}')
-                lines.append(f'        {cid}["{escape_label(comp["name"])}"]')
+                lines.append(f'        {shape_node(cid, escape_label(comp["name"]), mod.get("kind"), False)}')
             lines.append("    end")
         else:
-            lines.append(f'    {mid}["{escape_label(label)}"]')
+            lines.append(f'    {shape_node(mid, escape_label(label), mod.get("kind"), False)}')
 
     # External services
     if externals:
         lines.append("")
         for ext in externals:
             eid = sanitize_id(ext["name"])
-            lines.append(f'    {eid}[("{escape_label(ext["name"])}")]')
+            lines.append(f'    {shape_node(eid, escape_label(ext["name"]), ext.get("kind"), True)}')
 
     # Module-level dependency edges
     lines.append("")
@@ -221,8 +248,38 @@ def render_combined(architecture: list, deployment: list) -> str:
     # Styles
     lines.append("")
     lines.append("    classDef external fill:#1e1b2e,stroke:#a78bfa,stroke-width:1px,color:#c4b5fd")
+    lines.append("    classDef internal fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd")
+    lines.append("    classDef infra fill:#0d1f17,stroke:#10b981,stroke-width:1px,color:#6ee7b7")
+
     for ext in externals:
         lines.append(f"    class {sanitize_id(ext['name'])} external")
+
+    # Style modules without components (leaf nodes)
+    for mod in internals:
+        if not mod.get("components"):
+            lines.append(f"    class {sanitize_id(mod['name'])} internal")
+
+    # Style subgraphs (modules with components) using `style`
+    for mod in internals:
+        if mod.get("components"):
+            lines.append(f"    style {sanitize_id(mod['name'])} fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd")
+            # Style components inside as internal
+            for comp in mod.get("components", []):
+                cid = sanitize_id(f'{mod["name"]}_{comp["name"]}')
+                lines.append(f"    class {cid} internal")
+
+    # Style deployment subgraphs (if any host modules)
+    if deployment:
+        internal_names = {m["name"] for m in internals}
+        hosted = set()
+        for res in deployment:
+            hosts = [h for h in res.get("hosts", []) if h not in hosted and h in internal_names]
+            if not hosts:
+                continue
+            for h in hosts:
+                hosted.add(h)
+            rid = sanitize_id(res["name"])
+            lines.append(f"    style {rid} fill:#0d1f17,stroke:#10b981,stroke-width:1px,color:#6ee7b7")
 
     return "\n".join(lines)
 

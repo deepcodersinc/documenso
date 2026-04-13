@@ -30,6 +30,13 @@ Use this when no `unkode.yaml` exists (first-time setup).
 - In a single app: group by responsibility (API, auth, database, workers, etc.)
 - Name them functionally — what they DO, not where they live
 - "Payment Processing" not "src/pay", "User Authentication" not "auth-utils"
+- For each module, set `kind` to one of:
+  - `frontend` — UI apps (React, Vue, Remix, Next.js SPAs)
+  - `backend` — API services, servers, tRPC routers
+  - `worker` — background jobs, async processors, cron tasks
+  - `library` — shared libs, utilities, schemas (no runtime)
+  - `cli` — command-line tools, scripts
+  - `other` — anything else or when unsure
 
 ### Step 3: Identify components within each module
 - Components are logical sub-groupings within a module (2-6 per module)
@@ -39,9 +46,15 @@ Use this when no `unkode.yaml` exists (first-time setup).
 
 ### Step 4: Identify external dependencies
 - External = services this system communicates with OVER THE NETWORK
-- Databases, caches, message queues, third-party APIs, SaaS services
 - Detect from: SDK imports, connection strings, API client code, environment variables
 - NOT external: libraries, frameworks, dev tools — these are implementation details
+- For each external, set `kind` to one of:
+  - `database` — PostgreSQL, MongoDB, MySQL, etc.
+  - `cache` — Redis, Memcached, etc.
+  - `queue` — RabbitMQ, Kafka, SQS, Inngest, background job services
+  - `api` — Third-party APIs like Stripe, Anthropic, Google OAuth, SendGrid
+  - `storage` — S3, GCS, Azure Blob, object storage
+  - `other` — CDN, DNS, monitoring, anything else or when unsure
 
 ### Step 5: Identify deployment topology
 - ONLY if infrastructure-as-code exists in the repo (Terraform, Docker Compose, Kubernetes, Pulumi, CloudFormation, etc.)
@@ -137,6 +150,7 @@ _meta:
 architecture:
   - name: Module Name
     path: relative/path
+    kind: backend  # frontend | backend | worker | library | cli | other
     tech: [language, framework]
     role: One sentence describing what this module does.
     depends_on: [Other Module, External Service]
@@ -147,6 +161,7 @@ architecture:
 
   - name: External Service Name
     type: external
+    kind: database  # database | cache | queue | api | storage | other
     role: What this external service provides.
 
 deployment:

@@ -24,6 +24,31 @@ def escape_label(text: str) -> str:
     return text.replace('"', "&quot;").replace("[", "(").replace("]", ")")
 
 
+INTERNAL_SHAPES = {
+    "frontend": ("[/", "\\]"),
+    "backend":  ("[", "]"),
+    "worker":   ("[\\", "/]"),
+    "library":  ("([", "])"),
+    "cli":      (">", "]"),
+    "other":    ("(", ")"),
+}
+EXTERNAL_SHAPES = {
+    "database": ("[(", ")]"),
+    "cache":    ("[(", ")]"),
+    "storage":  ("[(", ")]"),
+    "queue":    ("[/", "/]"),
+    "api":      ("[[", "]]"),
+    "other":    ("(", ")"),
+}
+
+
+def shape_node(node_id: str, label: str, kind: str | None, is_external: bool) -> str:
+    shapes = EXTERNAL_SHAPES if is_external else INTERNAL_SHAPES
+    default = "other" if is_external else "backend"
+    o, c = shapes.get(kind or default, shapes[default])
+    return f'{node_id}{o}"{label}"{c}'
+
+
 def load_yaml(path: str) -> dict:
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
@@ -148,7 +173,7 @@ def render_diff_mermaid(diff: dict, curr_arch: list) -> str:
             label += f" ({tech})"
 
         if is_external:
-            lines.append(f'    {mid}[("{escape_label(label)}")]')
+            lines.append(f'    {shape_node(mid, escape_label(label), mod.get("kind"), True)}')
         else:
             comps = mod.get("components", [])
             if comps and isinstance(comps[0], dict):
@@ -157,10 +182,10 @@ def render_diff_mermaid(diff: dict, curr_arch: list) -> str:
                     if not isinstance(comp, dict):
                         continue
                     cid = sanitize_id(f'{mod["name"]}_{comp["name"]}')
-                    lines.append(f'        {cid}["{escape_label(comp["name"])}"]')
+                    lines.append(f'        {shape_node(cid, escape_label(comp["name"]), mod.get("kind"), False)}')
                 lines.append("    end")
             else:
-                lines.append(f'    {mid}["{escape_label(label)}"]')
+                lines.append(f'    {shape_node(mid, escape_label(label), mod.get("kind"), False)}')
 
     # Edges
     lines.append("")
