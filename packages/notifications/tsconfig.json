@@ -1,0 +1,5 @@
+{
+  "extends": "@documenso/tsconfig/base.json",
+  "include": ["**/*.ts", "**/*.d.ts"],
+  "exclude": ["dist", "build", "node_modules"]
+}

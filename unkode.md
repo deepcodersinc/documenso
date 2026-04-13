@@ -39,6 +39,7 @@ graph LR
     UI_Components["UI Components (TypeScript, React, Tailwind, Radix)"]
     Static_Assets["Static Assets (TypeScript)"]
     E2E_Tests["E2E Tests (TypeScript, Playwright)"]
+    Notifications["Notifications (TypeScript)"]
 
     PostgreSQL[("PostgreSQL")]
     Object_Storage[("Object Storage")]
@@ -50,6 +51,7 @@ graph LR
     MailChannels[("MailChannels")]
     SMTP_Provider[("SMTP Provider")]
     PostHog[("PostHog")]
+    Slack[("Slack")]
 
     Web_Application --> REST_API_V1
     Web_Application --> tRPC_API
@@ -84,6 +86,8 @@ graph LR
     Enterprise_Features --> Core_Library
     Enterprise_Features --> Database
     E2E_Tests --> Web_Application
+    Notifications --> Database
+    Notifications --> Slack
 
     classDef external fill:#1e1b2e,stroke:#a78bfa,stroke-width:1px,color:#c4b5fd
     class PostgreSQL external
@@ -96,6 +100,7 @@ graph LR
     class MailChannels external
     class SMTP_Provider external
     class PostHog external
+    class Slack external
 ```
 
 ---
@@ -232,6 +237,15 @@ Playwright end-to-end test suite that exercises the running web application.
 **Path:** `packages/app-tests`
 
 **Depends on:** Web Application
+
+
+### Notifications `TypeScript`
+
+Outbound notification helpers that dispatch messages to third-party channels such as Slack.
+
+**Path:** `packages/notifications`
+
+**Depends on:** Database, Slack
 
 
 ---

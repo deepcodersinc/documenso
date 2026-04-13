@@ -1,6 +1,6 @@
 _meta:
-  last_sync_commit: 6d7bd212bf890678b8fe040bb4292748addf4daf
-  last_sync: 2026-04-13T10:42:53Z
+  last_sync_commit: 01464bbe7388da7d25d654bb5a09670940876fc3
+  last_sync: 2026-04-13T11:21:00Z
   version: 1
 
 architecture:
@@ -147,6 +147,12 @@ architecture:
     role: Playwright end-to-end test suite that exercises the running web application.
     depends_on: [Web Application]
 
+  - name: Notifications
+    path: packages/notifications
+    tech: [TypeScript]
+    role: Outbound notification helpers that dispatch messages to third-party channels such as Slack.
+    depends_on: [Database, Slack]
+
   - name: PostgreSQL
     type: external
     role: Primary relational datastore for users, documents, recipients, audit logs, and queued local jobs.
@@ -186,6 +192,10 @@ architecture:
   - name: PostHog
     type: external
     role: Product analytics and feature-flag service for both server and client telemetry.
+
+  - name: Slack
+    type: external
+    role: Slack incoming webhook endpoint used to post outbound notifications from the platform.
 
 deployment:
   - name: Documenso Container
