@@ -38,12 +38,15 @@ runs:
 
         if [ -z "$LAST_SYNC" ]; then
           echo "status=no_meta" >> $GITHUB_OUTPUT
-        elif [ "$(echo $HEAD | cut -c1-7)" = "$(echo $LAST_SYNC | cut -c1-7)" ]; then
-          echo "status=current" >> $GITHUB_OUTPUT
         else
-          BEHIND=$(git rev-list --count ${LAST_SYNC}..HEAD 2>/dev/null || echo "unknown")
-          echo "status=stale" >> $GITHUB_OUTPUT
-          echo "behind=$BEHIND" >> $GITHUB_OUTPUT
+          # Check how many commits behind (allow 1 for the unkode commit itself)
+          BEHIND=$(git rev-list --count ${LAST_SYNC}..HEAD 2>/dev/null || echo "999")
+          if [ "$BEHIND" -le 1 ]; then
+            echo "status=current" >> $GITHUB_OUTPUT
+          else
+            echo "status=stale" >> $GITHUB_OUTPUT
+            echo "behind=$BEHIND" >> $GITHUB_OUTPUT
+          fi
         fi
 
     - name: Generate diff
