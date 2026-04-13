@@ -32,20 +32,32 @@ runs:
         import yaml
         with open('unkode.yaml') as f:
             d = yaml.safe_load(f) or {}
-        print(d.get('_meta', {}).get('last_sync_commit', ''))
+        v = str(d.get('_meta', {}).get('last_sync_commit', '')).strip()
+        print(v)
         ")
+        LAST_SYNC=$(echo "$LAST_SYNC" | tr -d '[:space:]')
         HEAD=$(git rev-parse HEAD)
+
+        echo "DEBUG: LAST_SYNC=$LAST_SYNC"
+        echo "DEBUG: HEAD=$HEAD"
 
         if [ -z "$LAST_SYNC" ]; then
           echo "status=no_meta" >> $GITHUB_OUTPUT
         else
-          # Check how many commits behind (allow 1 for the unkode commit itself)
-          BEHIND=$(git rev-list --count ${LAST_SYNC}..HEAD 2>/dev/null || echo "999")
-          if [ "$BEHIND" -le 1 ]; then
-            echo "status=current" >> $GITHUB_OUTPUT
-          else
+          # Check if LAST_SYNC commit exists in history
+          if ! git cat-file -t "$LAST_SYNC" > /dev/null 2>&1; then
+            echo "DEBUG: LAST_SYNC commit not found in git history"
             echo "status=stale" >> $GITHUB_OUTPUT
-            echo "behind=$BEHIND" >> $GITHUB_OUTPUT
+            echo "behind=unknown" >> $GITHUB_OUTPUT
+          else
+            BEHIND=$(git rev-list --count ${LAST_SYNC}..HEAD 2>/dev/null || echo "999")
+            echo "DEBUG: BEHIND=$BEHIND"
+            if [ "$BEHIND" -le 1 ]; then
+              echo "status=current" >> $GITHUB_OUTPUT
+            else
+              echo "status=stale" >> $GITHUB_OUTPUT
+              echo "behind=$BEHIND" >> $GITHUB_OUTPUT
+            fi
           fi
         fi
 
