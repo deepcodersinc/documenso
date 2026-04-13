@@ -1,0 +1,136 @@
+name: 'Unkode Architecture Check'
+description: 'Check architecture freshness and post diff diagram on PRs'
+
+inputs:
+  base-branch:
+    description: 'Branch to compare against'
+    required: false
+    default: 'main'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      shell: bash
+      run: pip install pyyaml -q
+
+    - name: Check architecture freshness
+      id: check
+      shell: bash
+      run: |
+        if [ ! -f unkode.yaml ]; then
+          echo "status=missing" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        LAST_SYNC=$(python -c "
+        import yaml
+        with open('unkode.yaml') as f:
+            d = yaml.safe_load(f) or {}
+        print(d.get('_meta', {}).get('last_sync_commit', ''))
+        ")
+        HEAD=$(git rev-parse HEAD)
+
+        if [ -z "$LAST_SYNC" ]; then
+          echo "status=no_meta" >> $GITHUB_OUTPUT
+        elif [ "$(echo $HEAD | cut -c1-7)" = "$(echo $LAST_SYNC | cut -c1-7)" ]; then
+          echo "status=current" >> $GITHUB_OUTPUT
+        else
+          BEHIND=$(git rev-list --count ${LAST_SYNC}..HEAD 2>/dev/null || echo "unknown")
+          echo "status=stale" >> $GITHUB_OUTPUT
+          echo "behind=$BEHIND" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Generate diff
+      id: diff
+      shell: bash
+      run: |
+        SKILLS_DIR=""
+        for d in .agents/skills/unkode .claude/skills/unkode; do
+          if [ -f "$d/yaml_diff.py" ]; then
+            SKILLS_DIR="$d"
+            break
+          fi
+        done
+
+        if [ -z "$SKILLS_DIR" ]; then
+          echo "has_diff=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # Check if unkode.yaml exists on base branch
+        if ! git show origin/${{ inputs.base-branch }}:unkode.yaml > /dev/null 2>&1; then
+          echo "has_diff=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        python "$SKILLS_DIR/yaml_diff.py" \
+          --base-branch "origin/${{ inputs.base-branch }}" \
+          --current unkode.yaml \
+          -o /tmp/unkode-diff.md 2>/dev/null
+
+        if [ -f /tmp/unkode-diff.md ]; then
+          echo "has_diff=true" >> $GITHUB_OUTPUT
+        else
+          echo "has_diff=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Post PR comment
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+
+          let body = '';
+          const status = '${{ steps.check.outputs.status }}';
+          const behind = '${{ steps.check.outputs.behind }}';
+          const hasDiff = '${{ steps.diff.outputs.has_diff }}' === 'true';
+
+          // Freshness warning
+          if (status === 'missing') {
+            body += '> **Unkode:** No `unkode.yaml` found. Run `/unkode` to generate the architecture baseline.\n\n';
+          } else if (status === 'stale') {
+            body += `> **Unkode:** Architecture diagram is ${behind} commit(s) behind. Run \`/unkode\` to update.\n\n`;
+          }
+
+          // Diff diagram
+          if (hasDiff) {
+            try {
+              const diff = fs.readFileSync('/tmp/unkode-diff.md', 'utf8');
+              if (!diff.includes('No architectural changes detected')) {
+                body += diff;
+              }
+            } catch (e) {}
+          }
+
+          if (!body.trim()) return;
+
+          // Find existing unkode comment to update
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          const existing = comments.find(c => c.body.includes('**Unkode:**'));
+
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+          }
