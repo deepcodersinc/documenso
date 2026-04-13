@@ -4,9 +4,9 @@
 graph LR
     subgraph Documenso_Container["Documenso Container (docker-compose, node)"]
         subgraph Web_Application["Web Application (TypeScript, React Router, Hono)"]
-            Web_Application_Hono_Server["Hono Server"]
-            Web_Application_React_Router_UI["React Router UI"]
-            Web_Application_Client_Providers["Client Providers"]
+            Web_Application_Hono_Server[/"Hono Server"\]
+            Web_Application_React_Router_UI[/"React Router UI"\]
+            Web_Application_Client_Providers[/"Client Providers"\]
         end
         subgraph REST_API_V1["REST API V1 (TypeScript, ts-rest, Hono)"]
             REST_API_V1_V1_Contracts["V1 Contracts"]
@@ -17,39 +17,43 @@ graph LR
             tRPC_API_Standalone_Client["Standalone Client"]
         end
         subgraph Core_Library["Core Library (TypeScript)"]
-            Core_Library_Server_Logic["Server Logic"]
-            Core_Library_Client_Utilities["Client Utilities"]
-            Core_Library_Universal_Helpers["Universal Helpers"]
-            Core_Library_Background_Jobs["Background Jobs"]
-            Core_Library_Schemas_and_Types["Schemas and Types"]
+            Core_Library_Server_Logic(["Server Logic"])
+            Core_Library_Client_Utilities(["Client Utilities"])
+            Core_Library_Universal_Helpers(["Universal Helpers"])
+            Core_Library_Background_Jobs(["Background Jobs"])
+            Core_Library_Schemas_and_Types(["Schemas and Types"])
         end
-        Email_Templates["Email Templates (TypeScript, React Email, Nodemailer)"]
-        Authentication["Authentication (TypeScript, Arctic, WebAuthn)"]
+        Email_Templates(["Email Templates (TypeScript, React Email, Nodemailer)"])
+        Authentication(["Authentication (TypeScript, Arctic, WebAuthn)"])
         subgraph PDF_Signing["PDF Signing (TypeScript)"]
-            PDF_Signing_Signing_Transports["Signing Transports"]
-            PDF_Signing_Signing_Helpers["Signing Helpers"]
+            PDF_Signing_Signing_Transports(["Signing Transports"])
+            PDF_Signing_Signing_Helpers(["Signing Helpers"])
         end
-        Enterprise_Features["Enterprise Features (TypeScript)"]
+        Enterprise_Features(["Enterprise Features (TypeScript)"])
     end
     subgraph PostgreSQL_Container["PostgreSQL Container (docker-compose, postgres-15)"]
-        Database["Database (TypeScript, Prisma, Kysely)"]
+        Database(["Database (TypeScript, Prisma, Kysely)"])
     end
-    Documentation_Site["Documentation Site (TypeScript, Next.js, Nextra)"]
+    Documentation_Site[/"Documentation Site (TypeScript, Next.js, Nextra)"\]
     Public_Analytics_API["Public Analytics API (TypeScript, Node)"]
-    UI_Components["UI Components (TypeScript, React, Tailwind, Radix)"]
-    Static_Assets["Static Assets (TypeScript)"]
-    E2E_Tests["E2E Tests (TypeScript, Playwright)"]
+    UI_Components(["UI Components (TypeScript, React, Tailwind, Radix)"])
+    Static_Assets(["Static Assets (TypeScript)"])
+    E2E_Tests("E2E Tests (TypeScript, Playwright)")
+    Notifications(["Notifications (TypeScript)"])
+    SMS(["SMS (TypeScript)"])
 
     PostgreSQL[("PostgreSQL")]
     Object_Storage[("Object Storage")]
-    Job_Queue[("Job Queue")]
-    Google_Cloud_KMS[("Google Cloud KMS")]
-    Google_OAuth[("Google OAuth")]
-    Stripe[("Stripe")]
-    Resend[("Resend")]
-    MailChannels[("MailChannels")]
-    SMTP_Provider[("SMTP Provider")]
-    PostHog[("PostHog")]
+    Job_Queue[/"Job Queue"/]
+    Google_Cloud_KMS[["Google Cloud KMS"]]
+    Google_OAuth[["Google OAuth"]]
+    Stripe[["Stripe"]]
+    Resend[["Resend"]]
+    MailChannels[["MailChannels"]]
+    SMTP_Provider[["SMTP Provider"]]
+    PostHog[["PostHog"]]
+    Slack[["Slack"]]
+    Twilio[["Twilio"]]
 
     Web_Application --> REST_API_V1
     Web_Application --> tRPC_API
@@ -84,8 +88,14 @@ graph LR
     Enterprise_Features --> Core_Library
     Enterprise_Features --> Database
     E2E_Tests --> Web_Application
+    Notifications --> Database
+    Notifications --> Slack
+    SMS --> Database
+    SMS --> Twilio
 
     classDef external fill:#1e1b2e,stroke:#a78bfa,stroke-width:1px,color:#c4b5fd
+    classDef internal fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd
+    classDef infra fill:#0d1f17,stroke:#10b981,stroke-width:1px,color:#6ee7b7
     class PostgreSQL external
     class Object_Storage external
     class Job_Queue external
@@ -96,6 +106,40 @@ graph LR
     class MailChannels external
     class SMTP_Provider external
     class PostHog external
+    class Slack external
+    class Twilio external
+    class Documentation_Site internal
+    class Public_Analytics_API internal
+    class Database internal
+    class UI_Components internal
+    class Email_Templates internal
+    class Authentication internal
+    class Enterprise_Features internal
+    class Static_Assets internal
+    class E2E_Tests internal
+    class Notifications internal
+    class SMS internal
+    style Web_Application fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd
+    class Web_Application_Hono_Server internal
+    class Web_Application_React_Router_UI internal
+    class Web_Application_Client_Providers internal
+    style REST_API_V1 fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd
+    class REST_API_V1_V1_Contracts internal
+    style tRPC_API fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd
+    class tRPC_API_Server_Routers internal
+    class tRPC_API_React_Client internal
+    class tRPC_API_Standalone_Client internal
+    style Core_Library fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd
+    class Core_Library_Server_Logic internal
+    class Core_Library_Client_Utilities internal
+    class Core_Library_Universal_Helpers internal
+    class Core_Library_Background_Jobs internal
+    class Core_Library_Schemas_and_Types internal
+    style PDF_Signing fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd
+    class PDF_Signing_Signing_Transports internal
+    class PDF_Signing_Signing_Helpers internal
+    style Documenso_Container fill:#0d1f17,stroke:#10b981,stroke-width:1px,color:#6ee7b7
+    style PostgreSQL_Container fill:#0d1f17,stroke:#10b981,stroke-width:1px,color:#6ee7b7
 ```
 
 ---
@@ -232,6 +276,24 @@ Playwright end-to-end test suite that exercises the running web application.
 **Path:** `packages/app-tests`
 
 **Depends on:** Web Application
+
+
+### Notifications `TypeScript`
+
+Outbound notification helpers that dispatch messages to third-party channels such as Slack.
+
+**Path:** `packages/notifications`
+
+**Depends on:** Database, Slack
+
+
+### SMS `TypeScript`
+
+Outbound SMS helpers that send text messages via the Twilio REST API.
+
+**Path:** `packages/sms`
+
+**Depends on:** Database, Twilio
 
 
 ---

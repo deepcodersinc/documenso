@@ -1,11 +1,12 @@
 _meta:
-  last_sync_commit: 6d7bd212bf890678b8fe040bb4292748addf4daf
-  last_sync: 2026-04-13T10:42:53Z
+  last_sync_commit: 20d797079673b9a981694fe054fcd7b047ec865f
+  last_sync: 2026-04-14T00:00:00Z
   version: 1
 
 architecture:
   - name: Web Application
     path: apps/remix
+    kind: frontend
     tech: [TypeScript, React Router, Hono]
     role: Main user-facing web app and HTTP server that mounts every API surface and serves the React UI.
     depends_on:
@@ -30,17 +31,20 @@ architecture:
 
   - name: Documentation Site
     path: apps/docs
+    kind: frontend
     tech: [TypeScript, Next.js, Nextra]
     role: Standalone documentation portal for product and developer guides.
 
   - name: Public Analytics API
     path: apps/openpage-api
+    kind: backend
     tech: [TypeScript, Node]
     role: Publicly exposed API that serves aggregate analytics for the openpage marketing surface.
     depends_on: [Database]
 
   - name: REST API V1
     path: packages/api
+    kind: backend
     tech: [TypeScript, ts-rest, Hono]
     role: Deprecated but maintained REST API for documents, templates, recipients, and fields under /api/v1.
     depends_on: [Core Library, Database, Authentication]
@@ -51,6 +55,7 @@ architecture:
 
   - name: tRPC API
     path: packages/trpc
+    kind: backend
     tech: [TypeScript, tRPC, OpenAPI]
     role: Internal tRPC API and public V2 OpenAPI surface covering documents, templates, envelopes, folders, and admin.
     depends_on: [Core Library, Database, Authentication, Enterprise Features]
@@ -67,6 +72,7 @@ architecture:
 
   - name: Core Library
     path: packages/lib
+    kind: library
     tech: [TypeScript]
     role: Shared business logic, background jobs, schemas, and provider strategies used by every server surface.
     depends_on:
@@ -96,29 +102,34 @@ architecture:
 
   - name: Database
     path: packages/prisma
+    kind: library
     tech: [TypeScript, Prisma, Kysely]
     role: Prisma schema, generated client, migrations, and Kysely query builder for PostgreSQL access.
     depends_on: [PostgreSQL]
 
   - name: UI Components
     path: packages/ui
+    kind: library
     tech: [TypeScript, React, Tailwind, Radix]
     role: Shared component library built on Shadcn and Radix primitives styled with Tailwind.
 
   - name: Email Templates
     path: packages/email
+    kind: library
     tech: [TypeScript, React Email, Nodemailer]
     role: React Email templates and the swappable mailer that dispatches via SMTP, Resend, or MailChannels.
     depends_on: [Resend, MailChannels, SMTP Provider]
 
   - name: Authentication
     path: packages/auth
+    kind: library
     tech: [TypeScript, Arctic, WebAuthn]
     role: Session, OAuth (Arctic), and passkey/WebAuthn authentication flows shared across server entry points.
     depends_on: [Database, Google OAuth]
 
   - name: PDF Signing
     path: packages/signing
+    kind: library
     tech: [TypeScript]
     role: Cryptographic PDF signing with swappable Local P12 and Google Cloud HSM transports.
     depends_on: [Google Cloud KMS]
@@ -132,60 +143,97 @@ architecture:
 
   - name: Enterprise Features
     path: packages/ee
+    kind: library
     tech: [TypeScript]
     role: Server-only Enterprise Edition features layered on top of the core platform under a separate license.
     depends_on: [Core Library, Database]
 
   - name: Static Assets
     path: packages/assets
+    kind: library
     tech: [TypeScript]
     role: Shared static images, fonts, and brand assets bundled into apps and emails.
 
   - name: E2E Tests
     path: packages/app-tests
+    kind: other
     tech: [TypeScript, Playwright]
     role: Playwright end-to-end test suite that exercises the running web application.
     depends_on: [Web Application]
 
+  - name: Notifications
+    path: packages/notifications
+    kind: library
+    tech: [TypeScript]
+    role: Outbound notification helpers that dispatch messages to third-party channels such as Slack.
+    depends_on: [Database, Slack]
+
+  - name: SMS
+    path: packages/sms
+    kind: library
+    tech: [TypeScript]
+    role: Outbound SMS helpers that send text messages via the Twilio REST API.
+    depends_on: [Database, Twilio]
+
   - name: PostgreSQL
     type: external
+    kind: database
     role: Primary relational datastore for users, documents, recipients, audit logs, and queued local jobs.
 
   - name: Object Storage
     type: external
+    kind: storage
     role: S3-compatible bucket (e.g. AWS S3, MinIO) for uploaded and signed PDF binaries.
 
   - name: Job Queue
     type: external
+    kind: queue
     role: External job runner backing the Inngest or BullMQ/Redis providers when not using the local DB queue.
 
   - name: Google Cloud KMS
     type: external
+    kind: api
     role: Managed HSM that holds signing keys and produces PDF signatures for the gcloud-hsm transport.
 
   - name: Google OAuth
     type: external
+    kind: api
     role: Google identity provider used for OAuth sign-in via Arctic.
 
   - name: Stripe
     type: external
+    kind: api
     role: Billing, subscriptions, and webhook events for paid plans and team seats.
 
   - name: Resend
     type: external
+    kind: api
     role: Transactional email delivery via the Resend HTTP API.
 
   - name: MailChannels
     type: external
+    kind: api
     role: Transactional email delivery via the MailChannels HTTP API with optional DKIM signing.
 
   - name: SMTP Provider
     type: external
+    kind: api
     role: Generic SMTP relay (auth or API key) for transactional email when Resend/MailChannels are not used.
 
   - name: PostHog
     type: external
+    kind: api
     role: Product analytics and feature-flag service for both server and client telemetry.
+
+  - name: Slack
+    type: external
+    kind: api
+    role: Slack incoming webhook endpoint used to post outbound notifications from the platform.
+
+  - name: Twilio
+    type: external
+    kind: api
+    role: Twilio Programmable Messaging REST API used to deliver outbound SMS messages.
 
 deployment:
   - name: Documenso Container
