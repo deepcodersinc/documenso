@@ -1,0 +1,19 @@
+{
+  "name": "@documenso/sms",
+  "version": "0.0.0",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "license": "MIT",
+  "files": [
+    "index.ts"
+  ],
+  "scripts": {
+    "clean": "rimraf node_modules"
+  },
+  "dependencies": {
+    "@documenso/prisma": "*"
+  },
+  "devDependencies": {
+    "@documenso/tsconfig": "*"
+  }
+}

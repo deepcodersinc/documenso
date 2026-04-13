@@ -1,6 +1,6 @@
 _meta:
-  last_sync_commit: 01464bbe7388da7d25d654bb5a09670940876fc3
-  last_sync: 2026-04-13T11:21:00Z
+  last_sync_commit: caf97aae677dc5a52ee3685ee15dc39a715445a5
+  last_sync: 2026-04-13T13:31:03Z
   version: 1
 
 architecture:
@@ -153,6 +153,12 @@ architecture:
     role: Outbound notification helpers that dispatch messages to third-party channels such as Slack.
     depends_on: [Database, Slack]
 
+  - name: SMS
+    path: packages/sms
+    tech: [TypeScript]
+    role: Outbound SMS helpers that send text messages via the Twilio REST API.
+    depends_on: [Database, Twilio]
+
   - name: PostgreSQL
     type: external
     role: Primary relational datastore for users, documents, recipients, audit logs, and queued local jobs.
@@ -196,6 +202,10 @@ architecture:
   - name: Slack
     type: external
     role: Slack incoming webhook endpoint used to post outbound notifications from the platform.
+
+  - name: Twilio
+    type: external
+    role: Twilio Programmable Messaging REST API used to deliver outbound SMS messages.
 
 deployment:
   - name: Documenso Container
