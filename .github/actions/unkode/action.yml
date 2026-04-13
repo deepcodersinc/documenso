@@ -134,3 +134,10 @@ runs:
               body,
             });
           }
+
+    - name: Fail if stale
+      if: steps.check.outputs.status == 'stale' || steps.check.outputs.status == 'missing'
+      shell: bash
+      run: |
+        echo "Architecture diagram is out of date. Run /unkode to update."
+        exit 1
