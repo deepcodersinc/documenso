@@ -15,6 +15,15 @@ from pathlib import Path
 import yaml
 
 
+def load_config() -> dict:
+    """Load config.yaml from the same directory as this script."""
+    cfg_path = Path(__file__).parent / "config.yaml"
+    if cfg_path.exists():
+        with open(cfg_path, encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    return {}
+
+
 def sanitize_id(name: str) -> str:
     """Convert a name to a safe Mermaid node ID."""
     return "".join(c if c.isalnum() else "_" for c in name).strip("_")
@@ -54,8 +63,12 @@ def shape_node(node_id: str, label: str, kind: str | None, is_external: bool) ->
 
 # ── Architecture diagram ────────────────────────────────────────────────────
 
+DARK_THEME_INIT = "%%{init: {'theme':'dark', 'themeVariables': {'background':'#0d1117', 'primaryColor':'#1e293b', 'primaryTextColor':'#e2e8f0', 'lineColor':'#64748b', 'clusterBkg':'#0f172a', 'clusterBorder':'#3b82f6'}}}%%"
+
+
 def render_architecture(modules: list) -> str:
-    lines = ["graph LR"]
+    direction = load_config().get("diagram_direction", "LR")
+    lines = [DARK_THEME_INIT, f"graph {direction}"]
 
     externals = [m for m in modules if m.get("type") == "external"]
     internals = [m for m in modules if m.get("type") != "external"]
@@ -128,7 +141,7 @@ def render_deployment(deployment: list, architecture: list) -> str:
     if not deployment:
         return ""
 
-    lines = ["graph TB"]
+    lines = [DARK_THEME_INIT, "graph TB"]
 
     for res in deployment:
         rid = sanitize_id(res["name"])
@@ -167,7 +180,8 @@ def render_deployment(deployment: list, architecture: list) -> str:
 # ── Combined single diagram ─────────────────────────────────────────────────
 
 def render_combined(architecture: list, deployment: list) -> str:
-    lines = ["graph LR"]
+    direction = load_config().get("diagram_direction", "LR")
+    lines = [DARK_THEME_INIT, f"graph {direction}"]
 
     externals = [m for m in architecture if m.get("type") == "external"]
     internals = [m for m in architecture if m.get("type") != "external"]
@@ -245,30 +259,29 @@ def render_combined(architecture: list, deployment: list) -> str:
                 continue
             lines.append(f"    {mid} --> {sanitize_id(dep)}")
 
-    # Styles
+    # Styles — bright components against dark containers (works in any theme)
     lines.append("")
-    lines.append("    classDef external fill:#1e1b2e,stroke:#a78bfa,stroke-width:1px,color:#c4b5fd")
-    lines.append("    classDef internal fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd")
-    lines.append("    classDef infra fill:#0d1f17,stroke:#10b981,stroke-width:1px,color:#6ee7b7")
+    lines.append("    classDef external fill:#4c1d95,stroke:#a78bfa,stroke-width:2px,color:#ede9fe")
+    lines.append("    classDef internal fill:#1e3a8a,stroke:#60a5fa,stroke-width:2px,color:#dbeafe")
+    lines.append("    classDef infra fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#d1fae5")
 
     for ext in externals:
         lines.append(f"    class {sanitize_id(ext['name'])} external")
 
-    # Style modules without components (leaf nodes)
+    # Style leaf modules (bright blue)
     for mod in internals:
         if not mod.get("components"):
             lines.append(f"    class {sanitize_id(mod['name'])} internal")
 
-    # Style subgraphs (modules with components) using `style`
+    # Style module subgraphs (dark navy container so bright components pop inside)
     for mod in internals:
         if mod.get("components"):
-            lines.append(f"    style {sanitize_id(mod['name'])} fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd")
-            # Style components inside as internal
+            lines.append(f"    style {sanitize_id(mod['name'])} fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#93c5fd")
             for comp in mod.get("components", []):
                 cid = sanitize_id(f'{mod["name"]}_{comp["name"]}')
                 lines.append(f"    class {cid} internal")
 
-    # Style deployment subgraphs (if any host modules)
+    # Style deployment subgraphs (dark green container)
     if deployment:
         internal_names = {m["name"] for m in internals}
         hosted = set()
@@ -279,7 +292,7 @@ def render_combined(architecture: list, deployment: list) -> str:
             for h in hosts:
                 hosted.add(h)
             rid = sanitize_id(res["name"])
-            lines.append(f"    style {rid} fill:#0d1f17,stroke:#10b981,stroke-width:1px,color:#6ee7b7")
+            lines.append(f"    style {rid} fill:#022c22,stroke:#10b981,stroke-width:2px,color:#6ee7b7")
 
     return "\n".join(lines)
 

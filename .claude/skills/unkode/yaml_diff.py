@@ -14,6 +14,16 @@ import tempfile
 from pathlib import Path
 
 import yaml
+from pathlib import Path
+
+
+def load_config() -> dict:
+    """Load config.yaml from the same directory as this script."""
+    cfg_path = Path(__file__).parent / "config.yaml"
+    if cfg_path.exists():
+        with open(cfg_path, encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    return {}
 
 
 def sanitize_id(name: str) -> str:
@@ -55,8 +65,18 @@ def load_yaml(path: str) -> dict:
 
 
 def load_yaml_from_git(branch: str, filepath: str = "unkode.yaml") -> dict:
-    # Try local branch first, then remote
-    for ref in [branch, f"origin/{branch}"]:
+    # Fetch latest from remote to ensure we compare against current upstream
+    subprocess.run(
+        ["git", "fetch", "origin", branch],
+        capture_output=True, text=True,
+    )
+    # Prefer origin/<branch> (upstream) over local branch which may be stale
+    # Unless the input is already an origin/ ref
+    if branch.startswith("origin/"):
+        refs = [branch]
+    else:
+        refs = [f"origin/{branch}", branch]
+    for ref in refs:
         try:
             result = subprocess.run(
                 ["git", "show", f"{ref}:{filepath}"],
@@ -144,8 +164,12 @@ def compute_diff(base_arch: list, curr_arch: list):
     }
 
 
+DARK_THEME_INIT = "%%{init: {'theme':'dark', 'themeVariables': {'background':'#0d1117', 'primaryColor':'#1e293b', 'primaryTextColor':'#e2e8f0', 'lineColor':'#64748b', 'clusterBkg':'#0f172a', 'clusterBorder':'#3b82f6'}}}%%"
+
+
 def render_diff_mermaid(diff: dict, curr_arch: list) -> str:
-    lines = ["graph LR"]
+    direction = load_config().get("diagram_direction", "LR")
+    lines = [DARK_THEME_INIT, f"graph {direction}"]
 
     added_names = {m["name"] for m in diff["added"]}
     removed_names = {m["name"] for m in diff["removed"]}
@@ -213,13 +237,13 @@ def render_diff_mermaid(diff: dict, curr_arch: list) -> str:
             tid = sanitize_id(tgt)
             lines.append(f"    {sid} -. removed .-> {tid}")
 
-    # Styles
+    # Styles — bright components with dark fills for contrast
     lines.append("")
-    lines.append("    classDef added fill:#0d2818,stroke:#10b981,stroke-width:2px,color:#6ee7b7")
-    lines.append("    classDef removed fill:#2d1216,stroke:#f87171,stroke-width:2px,color:#fca5a5,stroke-dasharray: 5 5")
-    lines.append("    classDef modified fill:#2d2006,stroke:#f59e0b,stroke-width:2px,color:#fcd34d")
-    lines.append("    classDef unchanged fill:#1a2840,stroke:#334155,stroke-width:1px,color:#94a3b8")
-    lines.append("    classDef external fill:#1e1b2e,stroke:#a78bfa,stroke-width:1px,color:#c4b5fd")
+    lines.append("    classDef added fill:#065f46,stroke:#34d399,stroke-width:2px,color:#d1fae5")
+    lines.append("    classDef removed fill:#7f1d1d,stroke:#f87171,stroke-width:2px,color:#fee2e2,stroke-dasharray: 5 5")
+    lines.append("    classDef modified fill:#78350f,stroke:#fbbf24,stroke-width:2px,color:#fef3c7")
+    lines.append("    classDef unchanged fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#cbd5e1")
+    lines.append("    classDef external fill:#4c1d95,stroke:#a78bfa,stroke-width:2px,color:#ede9fe")
 
     for mod in all_modules:
         mid = sanitize_id(mod["name"])
@@ -288,9 +312,10 @@ def render_summary(diff: dict) -> str:
 
 
 def main():
+    default_base = load_config().get("base_branch", "main")
     parser = argparse.ArgumentParser(description="Compare two unkode.yaml files and output diff")
     parser.add_argument("--base", help="Path to base unkode.yaml file")
-    parser.add_argument("--base-branch", default="main", help="Git branch to extract base from (default: main)")
+    parser.add_argument("--base-branch", default=default_base, help=f"Git branch to extract base from (default: {default_base})")
     parser.add_argument("--current", default="unkode.yaml", help="Path to current unkode.yaml (default: unkode.yaml)")
     parser.add_argument("-o", "--output", help="Output markdown file (if omitted, prints to stdout)")
     args = parser.parse_args()

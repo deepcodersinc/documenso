@@ -5,6 +5,15 @@ description: Generate, sync, and diff architecture map (unkode.yaml + unkode_map
 
 # Unkode — Architecture Map
 
+## Configuration
+
+Read `<skill-dir>/config.yaml` at the start. It contains:
+- `base_branch` — the branch to compare diffs against
+- `exclude_paths` — directories to ignore during analysis (skip these when identifying modules)
+- `diagram_direction` — diagram flow (LR or TB)
+
+Apply `exclude_paths` when scanning the codebase in Init and Sync. The converter and diff script read the other settings automatically.
+
 ## Pre-check
 
 Run: `python <skill-dir>/preflight.py`

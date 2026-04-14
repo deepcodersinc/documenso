@@ -1,7 +1,8 @@
 # Architecture
 
 ```mermaid
-graph LR
+%%{init: {'theme':'dark', 'themeVariables': {'background':'#0d1117', 'primaryColor':'#1e293b', 'primaryTextColor':'#e2e8f0', 'lineColor':'#64748b', 'clusterBkg':'#0f172a', 'clusterBorder':'#3b82f6'}}}%%
+graph TB
     subgraph Documenso_Container["Documenso Container (docker-compose, node)"]
         subgraph Web_Application["Web Application (TypeScript, React Router, Hono)"]
             Web_Application_Hono_Server[/"Hono Server"\]
@@ -41,6 +42,7 @@ graph LR
     E2E_Tests("E2E Tests (TypeScript, Playwright)")
     Notifications(["Notifications (TypeScript)"])
     SMS(["SMS (TypeScript)"])
+    Test_Module("Test Module (TypeScript)")
 
     PostgreSQL[("PostgreSQL")]
     Object_Storage[("Object Storage")]
@@ -93,9 +95,9 @@ graph LR
     SMS --> Database
     SMS --> Twilio
 
-    classDef external fill:#1e1b2e,stroke:#a78bfa,stroke-width:1px,color:#c4b5fd
-    classDef internal fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd
-    classDef infra fill:#0d1f17,stroke:#10b981,stroke-width:1px,color:#6ee7b7
+    classDef external fill:#4c1d95,stroke:#a78bfa,stroke-width:2px,color:#ede9fe
+    classDef internal fill:#1e3a8a,stroke:#60a5fa,stroke-width:2px,color:#dbeafe
+    classDef infra fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#d1fae5
     class PostgreSQL external
     class Object_Storage external
     class Job_Queue external
@@ -119,27 +121,28 @@ graph LR
     class E2E_Tests internal
     class Notifications internal
     class SMS internal
-    style Web_Application fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd
+    class Test_Module internal
+    style Web_Application fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#93c5fd
     class Web_Application_Hono_Server internal
     class Web_Application_React_Router_UI internal
     class Web_Application_Client_Providers internal
-    style REST_API_V1 fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd
+    style REST_API_V1 fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#93c5fd
     class REST_API_V1_V1_Contracts internal
-    style tRPC_API fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd
+    style tRPC_API fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#93c5fd
     class tRPC_API_Server_Routers internal
     class tRPC_API_React_Client internal
     class tRPC_API_Standalone_Client internal
-    style Core_Library fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd
+    style Core_Library fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#93c5fd
     class Core_Library_Server_Logic internal
     class Core_Library_Client_Utilities internal
     class Core_Library_Universal_Helpers internal
     class Core_Library_Background_Jobs internal
     class Core_Library_Schemas_and_Types internal
-    style PDF_Signing fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd
+    style PDF_Signing fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#93c5fd
     class PDF_Signing_Signing_Transports internal
     class PDF_Signing_Signing_Helpers internal
-    style Documenso_Container fill:#0d1f17,stroke:#10b981,stroke-width:1px,color:#6ee7b7
-    style PostgreSQL_Container fill:#0d1f17,stroke:#10b981,stroke-width:1px,color:#6ee7b7
+    style Documenso_Container fill:#022c22,stroke:#10b981,stroke-width:2px,color:#6ee7b7
+    style PostgreSQL_Container fill:#022c22,stroke:#10b981,stroke-width:2px,color:#6ee7b7
 ```
 
 ---
@@ -296,11 +299,19 @@ Outbound SMS helpers that send text messages via the Twilio REST API.
 **Depends on:** Database, Twilio
 
 
+### Test Module `TypeScript`
+
+Temporary test module added to verify unkode diff detection.
+
+**Path:** `packages/test-module`
+
+
 ---
 
 ## Deployment
 
 ```mermaid
+%%{init: {'theme':'dark', 'themeVariables': {'background':'#0d1117', 'primaryColor':'#1e293b', 'primaryTextColor':'#e2e8f0', 'lineColor':'#64748b', 'clusterBkg':'#0f172a', 'clusterBorder':'#3b82f6'}}}%%
 graph TB
     subgraph Documenso_Container["Documenso Container (docker-compose, node)"]
         Documenso_Container_Web_Application["Web Application"]
