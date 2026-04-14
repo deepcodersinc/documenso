@@ -2,7 +2,7 @@
 """Convert unkode.yaml to Mermaid diagram(s).
 
 Usage:
-    python yaml_to_mermaid.py unkode.yaml                  # outputs unkode_map.md
+    python yaml_to_mermaid.py unkode.yaml                  # outputs arch_map.md
     python yaml_to_mermaid.py unkode.yaml -o output.md     # custom output path
     python yaml_to_mermaid.py unkode.yaml --split          # separate files
 """
@@ -321,7 +321,7 @@ def check_staleness(meta: dict) -> str:
 def main():
     parser = argparse.ArgumentParser(description="Convert unkode.yaml to Mermaid diagrams")
     parser.add_argument("input", help="Path to unkode.yaml")
-    parser.add_argument("-o", "--output", default="unkode_map.md", help="Output markdown file (default: unkode_map.md)")
+    parser.add_argument("-o", "--output", default="arch_map.md", help="Output markdown file (default: arch_map.md)")
     parser.add_argument("--split", action="store_true", help="Generate separate files for architecture and deployment")
     args = parser.parse_args()
 
