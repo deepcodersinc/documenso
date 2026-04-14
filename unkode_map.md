@@ -1,3 +1,5 @@
+> :warning: **Architecture may be outdated** (last synced at `f88a446`, current HEAD is `05be65e`). Run `/unkode` to update.
+
 # Architecture
 
 ```mermaid
