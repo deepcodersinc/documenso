@@ -13,4 +13,4 @@ exclude_paths: []
 # Direction the architecture diagram flows.
 #   LR = left to right (good for wide diagrams, typical system layouts)
 #   TB = top to bottom (good for hierarchical / layered architectures)
-diagram_direction: TB
+diagram_direction: LR

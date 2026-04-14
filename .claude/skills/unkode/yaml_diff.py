@@ -164,12 +164,12 @@ def compute_diff(base_arch: list, curr_arch: list):
     }
 
 
-DARK_THEME_INIT = "%%{init: {'theme':'dark', 'themeVariables': {'background':'#0d1117', 'primaryColor':'#1e293b', 'primaryTextColor':'#e2e8f0', 'lineColor':'#64748b', 'clusterBkg':'#0f172a', 'clusterBorder':'#3b82f6'}}}%%"
+LIGHT_THEME_INIT = "%%{init: {'theme':'default'}}%%"
 
 
 def render_diff_mermaid(diff: dict, curr_arch: list) -> str:
     direction = load_config().get("diagram_direction", "LR")
-    lines = [DARK_THEME_INIT, f"graph {direction}"]
+    lines = [LIGHT_THEME_INIT, f"graph {direction}"]
 
     added_names = {m["name"] for m in diff["added"]}
     removed_names = {m["name"] for m in diff["removed"]}
@@ -237,31 +237,21 @@ def render_diff_mermaid(diff: dict, curr_arch: list) -> str:
             tid = sanitize_id(tgt)
             lines.append(f"    {sid} -. removed .-> {tid}")
 
-    # Styles — bright components with dark fills for contrast
+    # Only style changed nodes — unchanged + external are left with default (no fill)
     lines.append("")
-    lines.append("    classDef added fill:#065f46,stroke:#34d399,stroke-width:2px,color:#d1fae5")
-    lines.append("    classDef removed fill:#7f1d1d,stroke:#f87171,stroke-width:2px,color:#fee2e2,stroke-dasharray: 5 5")
-    lines.append("    classDef modified fill:#78350f,stroke:#fbbf24,stroke-width:2px,color:#fef3c7")
-    lines.append("    classDef unchanged fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#cbd5e1")
-    lines.append("    classDef external fill:#4c1d95,stroke:#a78bfa,stroke-width:2px,color:#ede9fe")
+    lines.append("    classDef added fill:#d1fae5,stroke:#059669,stroke-width:2px,color:#064e3b")
+    lines.append("    classDef removed fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d,stroke-dasharray: 5 5")
+    lines.append("    classDef modified fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f")
 
     for mod in all_modules:
         mid = sanitize_id(mod["name"])
-        if mod.get("type") == "external":
-            if mod["name"] in added_names:
-                lines.append(f"    class {mid} added")
-            elif mod["name"] in removed_names:
-                lines.append(f"    class {mid} removed")
-            else:
-                lines.append(f"    class {mid} external")
-        elif mod["name"] in added_names:
+        if mod["name"] in added_names:
             lines.append(f"    class {mid} added")
         elif mod["name"] in removed_names:
             lines.append(f"    class {mid} removed")
         elif mod["name"] in modified_names:
             lines.append(f"    class {mid} modified")
-        else:
-            lines.append(f"    class {mid} unchanged")
+        # Unchanged and external nodes: no class = default Mermaid styling (no fill)
 
     return "\n".join(lines)
 
