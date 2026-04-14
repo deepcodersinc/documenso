@@ -1,15 +1,24 @@
 ---
 name: unkode
-description: Generate, sync, and diff architecture map (unkode.yaml + unkode_map.md) from the codebase
+description: Generate, sync, and diff architecture map (unkode.yaml + arch_map.md) from the codebase
 ---
 
 # Unkode — Architecture Map
+
+## Configuration
+
+Read `<skill-dir>/config.yaml` at the start. It contains:
+- `base_branch` — the branch to compare diffs against
+- `exclude_paths` — directories to ignore during analysis (skip these when identifying modules)
+- `diagram_direction` — diagram flow (LR or TB)
+
+Apply `exclude_paths` when scanning the codebase in Init and Sync. The converter and diff script read the other settings automatically.
 
 ## Pre-check
 
 Run: `python <skill-dir>/preflight.py`
 
-- If output is `INIT` → tell the user: "No baseline architecture found. I'll analyze the codebase and generate the architecture diagram. After this, commit unkode.yaml and unkode_map.md to main as your baseline. Continue?" Wait for confirmation. Then follow the **Init** process below. After init, stop — do not run diff (there's no baseline to compare against yet).
+- If output is `INIT` → tell the user: "No baseline architecture found. I'll analyze the codebase and generate the architecture diagram. After this, commit unkode.yaml and arch_map.md to main as your baseline. Continue?" Wait for confirmation. Then follow the **Init** process below. After init, stop — do not run diff (there's no baseline to compare against yet).
 - If output is `UP_TO_DATE` → skip sync, go directly to the **Diff** process below.
 - If output starts with `SYNC` (e.g. `SYNC 12`) → follow the **Sync** process below, then the **Diff** process.
 
@@ -73,10 +82,10 @@ Use this when no `unkode.yaml` exists (first-time setup).
 - Set `_meta.last_sync` to current UTC timestamp
 
 ### Step 8: Generate Mermaid diagram
-- Run: `python <skill-dir>/yaml_to_mermaid.py unkode.yaml -o unkode_map.md`
+- Run: `python <skill-dir>/yaml_to_mermaid.py unkode.yaml -o arch_map.md`
 
 ### Step 9: Done
-- Tell the user: "Architecture baseline generated. Commit unkode.yaml and unkode_map.md to main."
+- Tell the user: "Architecture baseline generated. Commit unkode.yaml and arch_map.md to main."
 - Stop here. Do not run diff after init.
 
 ---
@@ -94,7 +103,7 @@ Use this when `unkode.yaml` exists but is out of date.
 - Run: `git diff --name-status HEAD` for uncommitted changes
 - Run: `git diff --name-status --cached` for staged changes
 - Combine all three lists (deduplicate)
-- Exclude `unkode.yaml` and `unkode_map.md` from the list
+- Exclude `unkode.yaml` and `arch_map.md` from the list
 - If `last_sync_commit` is not reachable, fall back to analyzing the full codebase
 
 ### Step 3: Determine impact
@@ -121,7 +130,7 @@ For each changed file, check:
 - Do NOT reorder modules — keep existing order to minimize diff noise
 
 ### Step 7: Regenerate Mermaid diagram
-- Run: `python <skill-dir>/yaml_to_mermaid.py unkode.yaml -o unkode_map.md`
+- Run: `python <skill-dir>/yaml_to_mermaid.py unkode.yaml -o arch_map.md`
 
 ---
 

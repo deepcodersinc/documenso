@@ -2,7 +2,7 @@
 """Convert unkode.yaml to Mermaid diagram(s).
 
 Usage:
-    python yaml_to_mermaid.py unkode.yaml                  # outputs unkode_map.md
+    python yaml_to_mermaid.py unkode.yaml                  # outputs arch_map.md
     python yaml_to_mermaid.py unkode.yaml -o output.md     # custom output path
     python yaml_to_mermaid.py unkode.yaml --split          # separate files
 """
@@ -13,6 +13,15 @@ import sys
 from pathlib import Path
 
 import yaml
+
+
+def load_config() -> dict:
+    """Load config.yaml from the same directory as this script."""
+    cfg_path = Path(__file__).parent / "config.yaml"
+    if cfg_path.exists():
+        with open(cfg_path, encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    return {}
 
 
 def sanitize_id(name: str) -> str:
@@ -54,8 +63,12 @@ def shape_node(node_id: str, label: str, kind: str | None, is_external: bool) ->
 
 # ── Architecture diagram ────────────────────────────────────────────────────
 
+LIGHT_THEME_INIT = "%%{init: {'theme':'default'}}%%"
+
+
 def render_architecture(modules: list) -> str:
-    lines = ["graph LR"]
+    direction = load_config().get("diagram_direction", "LR")
+    lines = [LIGHT_THEME_INIT, f"graph {direction}"]
 
     externals = [m for m in modules if m.get("type") == "external"]
     internals = [m for m in modules if m.get("type") != "external"]
@@ -110,15 +123,6 @@ def render_architecture(modules: list) -> str:
                 if not found and dep in all_names:
                     lines.append(f"    {cid} --> {sanitize_id(dep)}")
 
-    lines.append("")
-    lines.append("    classDef external fill:#1e1b2e,stroke:#a78bfa,stroke-width:1px,color:#c4b5fd")
-    lines.append("    classDef internal fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd")
-    for ext in externals:
-        lines.append(f"    class {sanitize_id(ext['name'])} external")
-    for mod in internals:
-        if not mod.get("components"):
-            lines.append(f"    class {sanitize_id(mod['name'])} internal")
-
     return "\n".join(lines)
 
 
@@ -128,7 +132,7 @@ def render_deployment(deployment: list, architecture: list) -> str:
     if not deployment:
         return ""
 
-    lines = ["graph TB"]
+    lines = [LIGHT_THEME_INIT, "graph TB"]
 
     for res in deployment:
         rid = sanitize_id(res["name"])
@@ -155,19 +159,14 @@ def render_deployment(deployment: list, architecture: list) -> str:
             if dep in dep_names:
                 lines.append(f"    {rid} --> {sanitize_id(dep)}")
 
-    lines.append("")
-    lines.append("    classDef infra fill:#0d1f17,stroke:#10b981,stroke-width:1px,color:#6ee7b7")
-    for res in deployment:
-        if not res.get("hosts"):
-            lines.append(f"    class {sanitize_id(res['name'])} infra")
-
     return "\n".join(lines)
 
 
 # ── Combined single diagram ─────────────────────────────────────────────────
 
 def render_combined(architecture: list, deployment: list) -> str:
-    lines = ["graph LR"]
+    direction = load_config().get("diagram_direction", "LR")
+    lines = [LIGHT_THEME_INIT, f"graph {direction}"]
 
     externals = [m for m in architecture if m.get("type") == "external"]
     internals = [m for m in architecture if m.get("type") != "external"]
@@ -244,42 +243,6 @@ def render_combined(architecture: list, deployment: list) -> str:
             if dep not in all_names:
                 continue
             lines.append(f"    {mid} --> {sanitize_id(dep)}")
-
-    # Styles
-    lines.append("")
-    lines.append("    classDef external fill:#1e1b2e,stroke:#a78bfa,stroke-width:1px,color:#c4b5fd")
-    lines.append("    classDef internal fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd")
-    lines.append("    classDef infra fill:#0d1f17,stroke:#10b981,stroke-width:1px,color:#6ee7b7")
-
-    for ext in externals:
-        lines.append(f"    class {sanitize_id(ext['name'])} external")
-
-    # Style modules without components (leaf nodes)
-    for mod in internals:
-        if not mod.get("components"):
-            lines.append(f"    class {sanitize_id(mod['name'])} internal")
-
-    # Style subgraphs (modules with components) using `style`
-    for mod in internals:
-        if mod.get("components"):
-            lines.append(f"    style {sanitize_id(mod['name'])} fill:#0f1a2e,stroke:#3b82f6,stroke-width:1px,color:#93c5fd")
-            # Style components inside as internal
-            for comp in mod.get("components", []):
-                cid = sanitize_id(f'{mod["name"]}_{comp["name"]}')
-                lines.append(f"    class {cid} internal")
-
-    # Style deployment subgraphs (if any host modules)
-    if deployment:
-        internal_names = {m["name"] for m in internals}
-        hosted = set()
-        for res in deployment:
-            hosts = [h for h in res.get("hosts", []) if h not in hosted and h in internal_names]
-            if not hosts:
-                continue
-            for h in hosts:
-                hosted.add(h)
-            rid = sanitize_id(res["name"])
-            lines.append(f"    style {rid} fill:#0d1f17,stroke:#10b981,stroke-width:1px,color:#6ee7b7")
 
     return "\n".join(lines)
 
@@ -358,7 +321,7 @@ def check_staleness(meta: dict) -> str:
 def main():
     parser = argparse.ArgumentParser(description="Convert unkode.yaml to Mermaid diagrams")
     parser.add_argument("input", help="Path to unkode.yaml")
-    parser.add_argument("-o", "--output", default="unkode_map.md", help="Output markdown file (default: unkode_map.md)")
+    parser.add_argument("-o", "--output", default="arch_map.md", help="Output markdown file (default: arch_map.md)")
     parser.add_argument("--split", action="store_true", help="Generate separate files for architecture and deployment")
     args = parser.parse_args()
 
