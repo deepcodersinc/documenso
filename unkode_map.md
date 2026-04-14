@@ -1,4 +1,4 @@
-> :warning: **Architecture may be outdated** (last synced at `f88a446`, current HEAD is `05be65e`). Run `/unkode` to update.
+> :warning: **Architecture may be outdated** (last synced at `f88a446`, current HEAD is `e442319`). Run `/unkode` to update.
 
 # Architecture
 
@@ -43,7 +43,6 @@ graph LR
     Static_Assets(["Static Assets (TypeScript)"])
     E2E_Tests("E2E Tests (TypeScript, Playwright)")
     Notifications(["Notifications (TypeScript)"])
-    SMS(["SMS (TypeScript)"])
     Test_Module("Test Module (TypeScript)")
 
     PostgreSQL[("PostgreSQL")]
@@ -57,7 +56,7 @@ graph LR
     SMTP_Provider[["SMTP Provider"]]
     PostHog[["PostHog"]]
     Slack[["Slack"]]
-    Twilio[["Twilio"]]
+    Sentry[["Sentry"]]
 
     Web_Application --> REST_API_V1
     Web_Application --> tRPC_API
@@ -82,6 +81,7 @@ graph LR
     Core_Library --> Job_Queue
     Core_Library --> Stripe
     Core_Library --> PostHog
+    Core_Library --> Sentry
     Database --> PostgreSQL
     Email_Templates --> Resend
     Email_Templates --> MailChannels
@@ -94,8 +94,6 @@ graph LR
     E2E_Tests --> Web_Application
     Notifications --> Database
     Notifications --> Slack
-    SMS --> Database
-    SMS --> Twilio
 ```
 
 ---
@@ -156,7 +154,7 @@ Shared business logic, background jobs, schemas, and provider strategies used by
 
 **Path:** `packages/lib`
 
-**Depends on:** Database, Email Templates, PDF Signing, Object Storage, Job Queue, Stripe, PostHog
+**Depends on:** Database, Email Templates, PDF Signing, Object Storage, Job Queue, Stripe, PostHog, Sentry
 
 - **Server Logic** — Server-only domain functions for documents, recipients, billing, webhooks, and admin actions.
 - **Client Utilities** — Browser-safe helpers, hooks, and constants consumed by the React UI.
@@ -241,15 +239,6 @@ Outbound notification helpers that dispatch messages to third-party channels suc
 **Path:** `packages/notifications`
 
 **Depends on:** Database, Slack
-
-
-### SMS `TypeScript`
-
-Outbound SMS helpers that send text messages via the Twilio REST API.
-
-**Path:** `packages/sms`
-
-**Depends on:** Database, Twilio
 
 
 ### Test Module `TypeScript`

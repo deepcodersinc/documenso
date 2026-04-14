@@ -83,6 +83,7 @@ architecture:
       - Job Queue
       - Stripe
       - PostHog
+      - Sentry
     components:
       - name: Server Logic
         path: packages/lib/server-only
@@ -168,13 +169,6 @@ architecture:
     role: Outbound notification helpers that dispatch messages to third-party channels such as Slack.
     depends_on: [Database, Slack]
 
-  - name: SMS
-    path: packages/sms
-    kind: library
-    tech: [TypeScript]
-    role: Outbound SMS helpers that send text messages via the Twilio REST API.
-    depends_on: [Database, Twilio]
-
   - name: Test Module
     path: packages/test-module
     kind: other
@@ -236,10 +230,10 @@ architecture:
     kind: api
     role: Slack incoming webhook endpoint used to post outbound notifications from the platform.
 
-  - name: Twilio
+  - name: Sentry
     type: external
     kind: api
-    role: Twilio Programmable Messaging REST API used to deliver outbound SMS messages.
+    role: Error monitoring and performance tracing service for server and client exceptions.
 
 deployment:
   - name: Documenso Container
